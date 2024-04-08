@@ -32,7 +32,7 @@ resource "aws_ecs_task_definition" "selenium_node" {
       }
     }
   }])
-  
+
 }
 
 resource "aws_ecs_service" "selenium_node" {
