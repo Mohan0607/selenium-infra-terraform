@@ -3,7 +3,7 @@ locals {
 }
 
 resource "aws_ecs_task_definition" "selenium_node" {
-  family                   = "selenium-node-task"
+  family                   = join("-", [var.resource_name_prefix, "selenium", var.service_type, "task"])
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   execution_role_arn       = var.execution_role_arn

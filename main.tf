@@ -2,6 +2,10 @@ data "aws_acm_certificate" "selenium" {
   domain = "*.mohandurai.info"
 }
 
+data "aws_route53_zone" "selenium" {
+  name = "mohandurai.info"
+}
+
 module "vpc" {
   source = "./modules/vpc"
 
@@ -14,6 +18,7 @@ module "vpc" {
 
 module "security_groups_alb" {
   source = "./modules/security_group"
+  resource_name_prefix = var.resource_name_prefix
 
   vpc_id = module.vpc.vpc_id
   security_groups = {
@@ -44,6 +49,7 @@ module "security_groups_alb" {
 
 module "security_groups_ecs" {
   source = "./modules/security_group"
+  resource_name_prefix = var.resource_name_prefix
 
   vpc_id = module.vpc.vpc_id
   security_groups = {
@@ -159,7 +165,7 @@ module "cloudfront" {
   }
 
   viewer_certificate = {
-    acm_certificate_arn            = var.cf_acm_cert_arn
+    acm_certificate_arn            = var.acm_cert_arn
     ssl_support_method             = "sni-only"
     minimum_protocol_version       = "TLSv1.2_2021"
     cloudfront_default_certificate = false
@@ -175,22 +181,109 @@ module "selenium_alb" {
   vpc_id                      = module.vpc.vpc_id
   selenium_hub_container_port = 4444
   certificate_arn             = data.aws_acm_certificate.selenium.arn
-  #user_pool_arn               = aws_cognito_user_pool.pool.arn
-  #user_pool_client_id         = aws_cognito_user_pool_client.client.id
-  #user_pool_domain            = aws_cognito_user_pool_domain.domain.domain
-  # Add more variables as needed
+
 }
 module "role" {
   source               = "./modules/iam_roles"
   resource_name_prefix = var.resource_name_prefix
-  policy_description   = ""
+  policy_name          = "selenium-ecs"
+  role_name            = "selenium-ecs"
+  policy_description   = "ECS Task Execution Policy"
+
+  iam_policy_json = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup",
+        ]
+        Resource = "*"
+      },
+    ]
+  })
+  enable_bitbucket_role_oidc = false
+  policy_statements = [
+    {
+      sid     = "AllowECSTask"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole"]
+      principals = [
+        {
+          type        = "Service"
+          identifiers = ["ecs-tasks.amazonaws.com", "application-autoscaling.amazonaws.com"]
+        }
+      ]
+      condition = []
+    }
+  ]
+
+}
+
+module "oidc_role" {
+  source               = "./modules/iam_roles"
+  resource_name_prefix = var.resource_name_prefix
+  policy_name          = "bitbucket-oidc"
+  role_name            = "bitbucket-oidc"
+  policy_description   = "Bitbucket OIDC Policy"
+
+  iam_policy_json = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup",
+          "s3:*",
+          "cloudfront:*"
+        ]
+        Resource = "*"
+      },
+    ]
+  })
+
+  enable_bitbucket_role_oidc = true
+  workspace_name             = var.workspace_name
+  workspace_uuid             = var.workspace_uuid
+  policy_statements = [
+    {
+      sid     = "OidcAllow"
+      effect  = "Allow"
+      actions = ["sts:AssumeRoleWithWebIdentity"]
+      principals = [
+        {
+          type        = "Federated"
+          identifiers = ["arn:aws:iam::${var.aws_account_id}:oidc-provider/api.bitbucket.org/2.0/workspaces/${var.workspace_name}/pipelines-config/identity/oidc"]
+        }
+      ]
+      condition = [
+        {
+          test     = "ForAllValues:StringLike"
+          variable = "api.bitbucket.org/2.0/workspaces/${var.workspace_name}/pipelines-config/identity/oidc:sub"
+          values   = var.repo_uuids
+        }
+      ]
+    }
+  ]
 }
 
 module "cluster" {
   source                = "./modules/ecs_cluster"
   resource_name_prefix  = var.resource_name_prefix
   selenium_cluster_name = "selenium-grid"
-  service_namespace_dns = "selenium-ns"
+  service_namespace_dns = var.service_discovery_namespace_name
 }
 
 # Hub
@@ -200,10 +293,11 @@ module "hub_service" {
   cluster_id           = module.cluster.cluster_id
   resource_name_prefix = var.resource_name_prefix
   service_name         = "hub-service"
-  desired_count        = 1
+  desired_count        = var.selenium_hub_service_desired_count
   subnet_ids           = module.vpc.private_subnet_ids
   security_groups      = module.security_groups_ecs.security_group_ids
   assign_public_ip     = true
+  service_type         = "hub"
 
   service_connect_config = [
     {
@@ -213,7 +307,7 @@ module "hub_service" {
         {
           client_alias = {
             port     = 4443
-            dns_name = join(".", ["hub", module.cluster.service_discovery_namespace_name])
+            dns_name = join(".", ["hub", var.service_discovery_namespace_name])
           }
           port_name      = join("-", ["hub-node-tcp", "4443"])
           discovery_name = join("-", [var.resource_name_prefix, "sub"])
@@ -221,7 +315,7 @@ module "hub_service" {
         {
           client_alias = {
             port     = 4442
-            dns_name = join(".", ["hub", module.cluster.service_discovery_namespace_name])
+            dns_name = join(".", ["hub", var.service_discovery_namespace_name])
           }
           port_name      = join("-", ["hub-node-tcp", "4442"])
           discovery_name = join("-", [var.resource_name_prefix, "pub"])
@@ -238,8 +332,8 @@ module "hub_service" {
   ]
 
   # task
-  execution_role_arn = module.role.ecs_task_execution_role_arn
-  task_role_arn      = module.role.ecs_task_execution_role_arn
+  execution_role_arn = module.role.iam_role_arn
+  task_role_arn      = module.role.iam_role_arn
   task_cpu           = var.selenium_hub_task_cpu
   task_memory        = var.selenium_hub_task_memory
   containers = [
@@ -286,7 +380,6 @@ module "hub_service" {
 
     }
   ]
-
 }
 
 module "hub_log_group" {
@@ -325,10 +418,11 @@ module "chrome_service" {
   cluster_id           = module.cluster.cluster_id
   resource_name_prefix = var.resource_name_prefix
   service_name         = "chrome-service"
-  desired_count        = 1
+  desired_count        = var.selenium_chrome_service_desired_count
   subnet_ids           = module.vpc.private_subnet_ids
   security_groups      = module.security_groups_ecs.security_group_ids
   assign_public_ip     = false
+  service_type         = "chrome"
 
   service_connect_config = [
     {
@@ -337,8 +431,8 @@ module "chrome_service" {
   }]
 
   # task
-  execution_role_arn = module.role.ecs_task_execution_role_arn
-  task_role_arn      = module.role.ecs_task_execution_role_arn
+  execution_role_arn = module.role.iam_role_arn
+  task_role_arn      = module.role.iam_role_arn
   task_cpu           = var.selenium_chrome_task_cpu
   task_memory        = var.selenium_chrome_task_memory
   containers = [
@@ -350,7 +444,7 @@ module "chrome_service" {
       environments = [
         {
           "name" : "SE_EVENT_BUS_HOST",
-          "value" : join(".", ["hub", module.cluster.service_discovery_namespace_name])
+          "value" : join(".", ["hub", var.service_discovery_namespace_name])
         },
         {
           "name" : "SE_EVENT_BUS_PUBLISH_PORT",
@@ -399,7 +493,7 @@ module "chrome_service" {
 
     }
   ]
-
+  depends_on = [module.cluster, module.hub_service]
 }
 
 module "chrome_log_group" {
@@ -429,4 +523,36 @@ module "chrome_autoscaling" {
   service_type          = "chrome"
   scale_up_adjustment   = 3
   scale_down_adjustment = -1
+}
+
+# dns
+module "cf_record" {
+  source  = "./modules/route53_records"
+  zone_id = data.aws_route53_zone.selenium.id
+
+  record = {
+    name = join("", var.cf_aliases)
+    type = "A"
+    alias = {
+      name                   = module.cloudfront.cloudfront_distribution_domain_name
+      zone_id                = module.cloudfront.cloudfront_distribution_hosted_zone_id
+      evaluate_target_health = true
+    }
+  }
+}
+
+module "alb_record" {
+  source  = "./modules/route53_records"
+  zone_id = data.aws_route53_zone.selenium.id
+
+  record = {
+    name = var.load_balancer_domain_name
+    type = "A"
+    alias = {
+      name                   = module.selenium_alb.alb_dns_domain
+      zone_id                = module.selenium_alb.alb_zone_id
+      evaluate_target_health = false
+    }
+  }
+
 }

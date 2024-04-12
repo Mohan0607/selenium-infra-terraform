@@ -1,7 +1,7 @@
 # terraform/modules/selenium_cloudfront/main.tf
 
 locals {
-  selenium_ui_cloudfront_comment = title("Dxc Testing Selenium Portal")
+  selenium_ui_cloudfront_comment = title("Testing Selenium Portal")
 }
 
 resource "aws_cloudfront_origin_access_identity" "selenium_ui" {

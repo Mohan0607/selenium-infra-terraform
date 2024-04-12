@@ -25,6 +25,6 @@ resource "aws_security_group" "main" {
   }
 
   tags = {
-    Name = each.value.name
+    Name = join("-", [var.resource_name_prefix, each.value.name])
   }
 }

@@ -11,7 +11,7 @@ locals {
 
 # Specify the provider and access details
 provider "aws" {
-  profile = "853973692277_limited-admin"
+  profile = var.local_aws_profile_name
   region  = var.region
   default_tags {
     tags = local.default_tags

@@ -21,55 +21,11 @@ variable "task_memory" {
   type        = string
   description = "The amount of memory (in MiB) to allocate for the Selenium node task."
 }
-
-# variable "image" {
-#   type        = string
-#   description = "The Docker image to use for the Selenium node container."
-# }
-
-# variable "container_name" {
-#   type        = number
-#   description = "Name of the Selenium node container."
-# }
-# variable "container_cpu" {
-#   type        = number
-#   description = "The number of CPU units to allocate for the Selenium node container."
-# }
-
-# variable "container_memory" {
-#   type        = number
-#   description = "The amount of memory (in MiB) to allocate for the Selenium node container."
-# }
-
 variable "node_environments" {
   type        = list(map(string))
   description = "A list of environment variables to pass to the Selenium node container."
   default     = []
 }
-
-# variable "container_port" {
-#   type        = number
-#   description = "The port on which the Selenium node container will listen."
-# }
-# variable "port_name" {
-#   type        = number
-#   description = "The port on which the Selenium node container will listen. eg hub-4444, hub-5555"
-# }
-
-# variable "cloudwatch_log_name" {
-#   type        = string
-#   description = "The name of the CloudWatch log group for the Selenium node."
-# }
-# variable "logs_stream_prefix" {
-#   type        = string
-#   description = "The name of the CloudWatch log stream prefix for the Selenium nodes."
-# }
-
-# variable "region" {
-#   type        = string
-#   description = "The AWS region where resources will be created."
-# }
-
 variable "cluster_id" {
   type        = string
   description = "The ID of the ECS cluster where the Selenium node service will be deployed."
@@ -150,4 +106,8 @@ variable "containers" {
       loggroup_name      = string
     }))
   }))
+}
+variable "service_type" {
+  type        = string
+  description = "A descriptor for the type of service (e.g., 'chrome', 'firefox'). Used in naming and tagging."
 }
