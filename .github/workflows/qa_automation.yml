@@ -1,35 +1,32 @@
 # Sample workflow to access AWS resources when workflow is tied to branch
 # The workflow Creates static website using aws s3
-name: AWS example workflow
-on:
-  workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
+name: AWS OIDC
+
 env:
   BUCKET_NAME : "testing-md-bucket-results"
   AWS_REGION : "us-east-1"
-# permission can be added at job level or workflow level
-permissions:
-      id-token: write   # This is required for requesting the JWT
-      contents: read    # This is required for actions/checkout
+
+on:
+  workflow_dispatch:
+
 jobs:
-  S3PackageUpload:
+  get_caller_identity:
+    name: Deploy Site
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Git clone the repository
-        uses: actions/checkout@v3
-        
-      - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+            
+      - name: Configure AWS credentials from Test account
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::853973692277:role/mohan-github-role
-          role-session-name: samplerolesession
-          aws-region: ${{ env.AWS_REGION }}
-      # Upload a file to AWS s3
-      - name:  Copy index.html to s3
+          aws-region: us-east-1
+
+      - name: Upload the site contents
         run: |
-          echo "hi github oidc setup" >> index.html
-          aws s3 cp ./index.html s3://${{ env.BUCKET_NAME }}/
+          echo "hi" >> index.html
+          aws s3 cp index.html s3://testing-md-bucket-results/
