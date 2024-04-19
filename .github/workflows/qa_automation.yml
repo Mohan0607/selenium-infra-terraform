@@ -8,9 +8,6 @@ on:
         description: 'Log level'
         required: true
         default: 'warning'
-      tags:
-        description: 'Comma-separated list of tags'
-        required: false
 env:
   BUCKET_NAME : "testing-md-bucket-results"
   AWS_REGION : "us-east-1"
@@ -24,11 +21,11 @@ jobs:
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v4
+        
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          role-to-assume: arn:aws:iam::853973692277:role/testing-md-github-role
-          role-session-name: samplerolesession
+          role-to-assume: arn:aws:iam::853973692277:role/test-md-github-rele-new
           aws-region: ${{ env.AWS_REGION }}
       # Upload a file to AWS s3
       - name:  Copy index.html to s3
