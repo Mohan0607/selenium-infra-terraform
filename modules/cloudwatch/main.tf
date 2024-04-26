@@ -4,16 +4,16 @@ locals {
 }
 
 resource "aws_cloudwatch_log_group" "log_groups" {
-  name              = join("-", [local.cloud_watch_log_name, "log-group", var.name_suffix])
+  name              = join("-", [local.cloud_watch_log_name, "selenium", var.service_type, "log-group"])
   retention_in_days = var.retention_in_days
 
   tags = {
-    Name = join("-", [local.cloud_watch_log_name, "log-group", var.name_suffix])
+    Name = join("-", [local.cloud_watch_log_name, "selenium", var.service_type, "log-group"])
   }
 }
 
 resource "aws_cloudwatch_log_stream" "log_streams" {
-  name           = join("-", [local.cloud_watch_log_name, "log-stream", var.name_suffix])
+  name           = join("-", [local.cloud_watch_log_name, "selenium", var.service_type, "log-stream"])
   log_group_name = aws_cloudwatch_log_group.log_groups.name
 }
 
@@ -26,9 +26,9 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
   period              = var.period
-  statistic           = "Maximum"
+  statistic           = var.statistic
   threshold           = var.high_threshold
-  treat_missing_data  = "breaching"
+  treat_missing_data  = var.treat_missing_data
   dimensions = {
     ClusterName = var.cluster_name
     ServiceName = var.service_name
@@ -47,7 +47,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
   period              = var.period
-  statistic           = "Maximum"
+  statistic           = var.statistic
   threshold           = var.low_threshold
 
   dimensions = {

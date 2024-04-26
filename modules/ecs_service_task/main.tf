@@ -1,5 +1,7 @@
 locals {
-  service_name_prefix = join("-", [var.resource_name_prefix, var.service_name])
+  service_name_prefix       = join("-", [var.resource_name_prefix, var.service_name])
+  health_check_grace_period = var.service_type == "hub" ? 300 : null
+
 }
 
 resource "aws_ecs_task_definition" "selenium_node" {
@@ -17,6 +19,7 @@ resource "aws_ecs_task_definition" "selenium_node" {
     memory      = container.memory
     essential   = true
     environment = container.environments
+    command     = container.command
     portMappings = [for port in container.ports : {
       name          = join("-", [container.name, port.protocol, port.hostPort])
       containerPort = port.containerPort
@@ -36,11 +39,13 @@ resource "aws_ecs_task_definition" "selenium_node" {
 }
 
 resource "aws_ecs_service" "selenium_node" {
-  name            = local.service_name_prefix
-  cluster         = var.cluster_id
-  desired_count   = var.desired_count
-  launch_type     = "FARGATE"
-  task_definition = aws_ecs_task_definition.selenium_node.arn
+  name                              = local.service_name_prefix
+  cluster                           = var.cluster_id
+  desired_count                     = var.desired_count
+  launch_type                       = "FARGATE"
+  task_definition                   = aws_ecs_task_definition.selenium_node.arn
+  scheduling_strategy               = "REPLICA"
+  health_check_grace_period_seconds = local.health_check_grace_period
 
   network_configuration {
     security_groups  = var.security_groups

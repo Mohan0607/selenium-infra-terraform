@@ -19,7 +19,7 @@ acm_cert_arn              = "arn:aws:acm:us-east-1:853973692277:certificate/79ca
 service_discovery_namespace_name = "selenium-ns"
 
 # Cloud Front
-cf_aliases                = ["testing-dashboard.mohandurai.info"]
+cf_aliases = ["testing-dashboard.mohandurai.info"]
 
 # ECS Hub Task Definitions
 selenium_hub_image                 = "selenium/hub:4.11.0"

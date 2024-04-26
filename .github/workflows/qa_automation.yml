@@ -1,32 +1,57 @@
-# Sample workflow to access AWS resources when workflow is tied to branch
-# The workflow Creates static website using aws s3
-name: AWS OIDC
-
-env:
-  BUCKET_NAME : "testing-md-bucket-results"
-  AWS_REGION : "us-east-1"
+name: QA Automation and AWS Deployment
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.java'
+      - 'pom.xml'
   workflow_dispatch:
 
-jobs:
-  get_caller_identity:
-    name: Deploy Site
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4.1.1
-            
-      - name: Configure AWS credentials from Test account
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::853973692277:role/mohan-github-role
-          aws-region: us-east-1
+permissions:
+  id-token: write
+  contents: read
 
-      - name: Upload the site contents
+jobs:
+  setup-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Multi Stage Env Variables
         run: |
-          echo "hi" >> index.html
-          aws s3 cp index.html s3://testing-md-bucket-results/
+          echo "SELENIUM_GRID_ENDPOINT=${{ secrets.SELENIUM_GRID_ENDPOINT }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=qa" >> $GITHUB_ENV
+
+      - name: Run Automation Tests - Chrome
+        uses: docker://maven:3.9.4-amazoncorretto-11
+        with:
+          args: |
+            mvn clean verify -Dcucumber.filter.tags="@all and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::853973692277:role/testing-md-bitbucket-oidc-role
+          role-session-name: GitHubActionsSession
+
+      - name: Upload Test Results to AWS S3
+        run: |
+          aws s3 sync chrome-report/ s3://testing-md-bucket-results/reports/${{ github.run_number }}/chrome
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id E2A9EO1P7FQB5T --paths "/*"
+
+      - name: Publish Test Reports
+        run: |
+          echo "SERENITY REPORTS"
+          echo "****************"
+          echo "Full Report (Chrome) - https://testing-api.mohandurai.info/reports/${{ github.run_number }}/chrome/index.html"
+          echo "Single Page Summary (Chrome) - https://testing-api.mohandurai.info/reports/${{ github.run_number }}/chrome/serenity-summary.html"
+          echo "Full Report As React SPA (Chrome) - https://testing-api.mohandurai.info/reports/${{ github.run_number }}/chrome/navigator/index.html"
+          echo "****************"

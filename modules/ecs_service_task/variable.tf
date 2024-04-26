@@ -95,6 +95,7 @@ variable "containers" {
     cpu          = number
     memory       = number
     environments = list(map(string))
+    command      = list(string)
     ports = list(object({
       containerPort = number
       hostPort      = number

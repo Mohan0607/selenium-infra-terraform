@@ -17,7 +17,7 @@ module "vpc" {
 }
 
 module "security_groups_alb" {
-  source = "./modules/security_group"
+  source               = "./modules/security_group"
   resource_name_prefix = var.resource_name_prefix
 
   vpc_id = module.vpc.vpc_id
@@ -48,7 +48,7 @@ module "security_groups_alb" {
 }
 
 module "security_groups_ecs" {
-  source = "./modules/security_group"
+  source               = "./modules/security_group"
   resource_name_prefix = var.resource_name_prefix
 
   vpc_id = module.vpc.vpc_id
@@ -307,7 +307,7 @@ module "hub_service" {
         {
           client_alias = {
             port     = 4443
-            dns_name = join(".", ["hub", var.service_discovery_namespace_name])
+            dns_name = join(".", ["hub", module.cluster.service_discovery_namespace_name])
           }
           port_name      = join("-", ["hub-node-tcp", "4443"])
           discovery_name = join("-", [var.resource_name_prefix, "sub"])
@@ -315,7 +315,7 @@ module "hub_service" {
         {
           client_alias = {
             port     = 4442
-            dns_name = join(".", ["hub", var.service_discovery_namespace_name])
+            dns_name = join(".", ["hub", module.cluster.service_discovery_namespace_name])
           }
           port_name      = join("-", ["hub-node-tcp", "4442"])
           discovery_name = join("-", [var.resource_name_prefix, "pub"])
@@ -338,10 +338,11 @@ module "hub_service" {
   task_memory        = var.selenium_hub_task_memory
   containers = [
     {
-      name   = "hub-node"
-      image  = var.selenium_hub_image
-      cpu    = var.selenium_hub_container_cpu
-      memory = var.selenium_hub_container_memory
+      name    = "hub-node"
+      image   = var.selenium_hub_image
+      cpu     = var.selenium_hub_container_cpu
+      memory  = var.selenium_hub_container_memory
+      command = []
       environments = [
         {
           "name" : "SE_OPTS",
@@ -383,18 +384,21 @@ module "hub_service" {
 }
 
 module "hub_log_group" {
-  source                       = "./modules/cloudwatch"
-  resource_name_prefix         = var.resource_name_prefix
-  name_suffix                  = "hub"
-  retention_in_days            = 30
-  cluster_name                 = module.cluster.cluster_name
-  service_name                 = module.hub_service.service_name
-  service_type                 = "hub"
-  high_threshold               = 80
-  low_threshold                = 20
-  high_eval_periods            = 1
-  low_eval_periods             = 1
-  period                       = 60
+  source               = "./modules/cloudwatch"
+  resource_name_prefix = var.resource_name_prefix
+  name_suffix          = "hub"
+  retention_in_days    = 30
+  cluster_name         = module.cluster.cluster_name
+  service_name         = module.hub_service.service_name
+  service_type         = "hub"
+  high_threshold       = "80"
+  low_threshold        = "20"
+  high_eval_periods    = "2"
+  low_eval_periods     = "2"
+  period               = "60"
+  statistic            = "Average"
+  treat_missing_data   = "missing"
+
   alaram_scale_down_action_arn = module.hub_autoscaling.alaram_scale_down_action_arn
   alaram_scale_up_action_arn   = module.hub_autoscaling.alaram_scale_up_action_arn
 }
@@ -437,14 +441,15 @@ module "chrome_service" {
   task_memory        = var.selenium_chrome_task_memory
   containers = [
     {
-      name   = "chrome-node"
-      image  = var.selenium_chrome_image
-      cpu    = var.selenium_chrome_container_cpu
-      memory = var.selenium_chrome_container_memory
+      name    = "chrome-node"
+      image   = var.selenium_chrome_image
+      cpu     = var.selenium_chrome_container_cpu
+      memory  = var.selenium_chrome_container_memory
+      command = ["/bin/bash", "-c", "PRIVATE=$(curl -s http://169.254.170.2/v2/metadata | jq -r '.Containers[0].Networks[0].IPv4Addresses[0]') ; export SE_OPTS=\"--host $PRIVATE\" ; /opt/bin/entry_point.sh"]
       environments = [
         {
           "name" : "SE_EVENT_BUS_HOST",
-          "value" : join(".", ["hub", var.service_discovery_namespace_name])
+          "value" : join(".", ["hub", module.cluster.service_discovery_namespace_name])
         },
         {
           "name" : "SE_EVENT_BUS_PUBLISH_PORT",
@@ -497,18 +502,21 @@ module "chrome_service" {
 }
 
 module "chrome_log_group" {
-  source                       = "./modules/cloudwatch"
-  resource_name_prefix         = var.resource_name_prefix
-  name_suffix                  = "chrome"
-  retention_in_days            = 30
-  cluster_name                 = module.cluster.cluster_name
-  service_name                 = module.chrome_service.service_name
-  service_type                 = "chrome"
-  high_threshold               = 80
-  low_threshold                = 20
-  high_eval_periods            = 1
-  low_eval_periods             = 1
-  period                       = 60
+  source               = "./modules/cloudwatch"
+  resource_name_prefix = var.resource_name_prefix
+  name_suffix          = "chrome"
+  retention_in_days    = 30
+  cluster_name         = module.cluster.cluster_name
+  service_name         = module.chrome_service.service_name
+  service_type         = "chrome"
+  high_threshold       = "80"
+  low_threshold        = "20"
+  high_eval_periods    = "1"
+  low_eval_periods     = "1"
+  period               = "60"
+  statistic            = "Maximum"
+  treat_missing_data   = "breaching"
+
   alaram_scale_down_action_arn = module.chrome_autoscaling.alaram_scale_down_action_arn
   alaram_scale_up_action_arn   = module.chrome_autoscaling.alaram_scale_up_action_arn
 }
