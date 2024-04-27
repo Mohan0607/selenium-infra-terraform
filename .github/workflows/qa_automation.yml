@@ -11,6 +11,8 @@ env:
   AWS_ROLE_ARN: arn:aws:iam::853973692277:role/mohan-github-role
   AWS_REGION: us-east-1
   CLOUDFRONT_DISTRIBUTION_ID: EXKKOLOGFI623
+  DASHBOARD_ULR: testing-dashboard.mohandurai.info
+  SELENIUM_GRID_URL: testing-api.mohandurai.info
     
 permissions:
   id-token: write
@@ -32,7 +34,7 @@ jobs:
       - name: Run Automation Tests - Chrome
         run: |
           cd sample-test-case
-          mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="${{ github.workspace }}/chrome-report" -Dcucumber.execution.parallel.enabled=true
+          mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://${{ env.SELENIUM_GRID_URL}} -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="${{ github.workspace }}/chrome-report" -Dcucumber.execution.parallel.enabled=true
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -52,6 +54,6 @@ jobs:
       - name: View Test Reports
         run: |
           echo "---SERENITY REPORTS---"
-          echo "Full Report (Chrome) - https://testing-dashboard.mohandurai.info/reports/${{ github.run_number }}/chrome/index.html"
-          echo "Single Page Summary (Chrome) - https://testing-dashboard.mohandurai.info/reports/${{ github.run_number }}/chrome/serenity-summary.html"
-          echo "Full Report As React SPA (Chrome) - https://testing-dashboard.mohandurai.info/reports/${{ github.run_number }}/chrome/navigator/index.html"
+          echo "Full Report (Chrome) - https://${{ env.DASHBOARD_ULR }}/reports/${{ github.run_number }}/chrome/index.html"
+          echo "Single Page Summary (Chrome) - https://${{ env.DASHBOARD_ULR }}/reports/${{ github.run_number }}/chrome/serenity-summary.html"
+          echo "Full Report As React SPA (Chrome) - https://${{ env.DASHBOARD_ULR }}/reports/${{ github.run_number }}/chrome/navigator/index.html"
