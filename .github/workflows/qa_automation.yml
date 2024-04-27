@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '**.java'
-      - 'pom.xml'
+    # paths:
+    #   - '**.java'
+    #   - 'pom.xml'
   workflow_dispatch:
 
 permissions:
@@ -27,12 +27,14 @@ jobs:
           ls -a
           cd sample-test-case
           pwd
+          ls -a
 
 
       - name: Run Automation Tests - Chrome
         uses: docker://maven:3.9.4-amazoncorretto-11
         with:
           args: |
+            mvn -V
             mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
 
       - name: Configure AWS Credentials
