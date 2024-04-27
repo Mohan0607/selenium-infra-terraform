@@ -34,8 +34,7 @@ jobs:
         uses: docker://maven:3.9.4-amazoncorretto-11
         with:
           args: |
-            mvn -V
-            mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
+            mvn clean verify  --workdir /github/workspace/sample-test-case -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
