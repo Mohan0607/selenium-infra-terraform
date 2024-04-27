@@ -32,11 +32,11 @@ jobs:
           cd sample-test-case
           mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="${{ github.workspace }}/chrome-report" -Dcucumber.execution.parallel.enabled=true
 
-      - name: Upload Test Report as Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: chrome-report
-          path: ${{ github.workspace }}/chrome-report
+      # - name: Upload Test Report as Artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: chrome-report
+      #     path: ${{ github.workspace }}/chrome-report
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -45,15 +45,14 @@ jobs:
           role-to-assume: arn:aws:iam::853973692277:role/mohan-github-role
           role-session-name: GithubActionsSession
 
-      - name: Download Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: chrome-report
+      # - name: Download Artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: chrome-report
 
       - name: Upload Test Results to AWS S3
         run: |
-          cd 
-          aws s3 sync chrome-report/ s3://testing-md-bucket-results/reports/${{ github.run_number }}/chrome
+          aws s3 sync ${GITHUB_WORKSPACE}/chrome-report/ s3://testing-md-bucket-results/reports/${{ github.run_number }}/chrome
 
       - name: Invalidate CloudFront Cache
         run: |
