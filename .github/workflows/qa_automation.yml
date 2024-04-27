@@ -1,4 +1,4 @@
-name: QA Automation and AWS Deployment
+name: Generating The Test Report
 
 on:
   push:
@@ -21,23 +21,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set Multi Stage Env Variables
-        run: |
-          echo "SELENIUM_GRID_ENDPOINT=${{ secrets.SELENIUM_GRID_ENDPOINT }}" >> $GITHUB_ENV
-          echo "ENVIRONMENT=qa" >> $GITHUB_ENV
+      - name: Change Directory
+        run: cd sample-test-case
 
       - name: Run Automation Tests - Chrome
         uses: docker://maven:3.9.4-amazoncorretto-11
         with:
           args: |
-            mvn clean verify -Dcucumber.filter.tags="@all and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
+            mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::853973692277:role/testing-md-bitbucket-oidc-role
-          role-session-name: GitHubActionsSession
+          role-to-assume: arn:aws:iam::853973692277:role/mohan-github-role
+          role-session-name: GithubActionsSession
 
       - name: Upload Test Results to AWS S3
         run: |
