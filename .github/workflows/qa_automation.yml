@@ -21,32 +21,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
       
-      - name: Check the PATH
-        run: |
-          pwd
-          ls -a
-          cd sample-test-case
-          pwd
-          ls -a
-      
-      - uses: actions/setup-java@v4
+      - name: Install Java
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Run the Maven verify phase
+      
+      - name: Run Automation Tests - Chrome
         run: |
           cd sample-test-case
-          ls -a
-          pwd
           mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
-          
-
-      # - name: Run Automation Tests - Chrome
-      #   uses: docker://maven:3.9.4-amazoncorretto-11
-      #   with:
-      #     args: |
-      #       mvn clean verify  --workdir /github/workspace/sample-test-case -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
-
+      
+      - name: Upload Test Report as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: chrome-report
+          path: chrome-report/
+      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -54,13 +45,19 @@ jobs:
           role-to-assume: arn:aws:iam::853973692277:role/mohan-github-role
           role-session-name: GithubActionsSession
 
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: chrome-report
+
       - name: Upload Test Results to AWS S3
         run: |
+          cd 
           aws s3 sync chrome-report/ s3://testing-md-bucket-results/reports/${{ github.run_number }}/chrome
 
       - name: Invalidate CloudFront Cache
         run: |
-          aws cloudfront create-invalidation --distribution-id E2A9EO1P7FQB5T --paths "/*"
+          aws cloudfront create-invalidation --distribution-id EXKKOLOGFI623 --paths "/*"
 
       - name: Publish Test Reports
         run: |
