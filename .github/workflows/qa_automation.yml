@@ -36,7 +36,9 @@ jobs:
       - name: Run the Maven verify phase
         run: |
           cd sample-test-case
-          mvn clean verify  --workdir /github/workspace/sample-test-case -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
+          ls -a
+          pwd
+          mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
           
 
       # - name: Run Automation Tests - Chrome
