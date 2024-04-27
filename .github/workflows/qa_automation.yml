@@ -4,11 +4,14 @@ on:
   push:
     branches:
       - main
-    # paths:
-    #   - '**.java'
-    #   - 'pom.xml'
   workflow_dispatch:
 
+env:
+  AWS_BUCKET_NAME: testing-md-bucket-results
+  AWS_ROLE_ARN: arn:aws:iam::853973692277:role/mohan-github-role
+  AWS_REGION: us-east-1
+  CLOUDFRONT_DISTRIBUTION_ID: EXKKOLOGFI623
+    
 permissions:
   id-token: write
   contents: read
@@ -16,7 +19,6 @@ permissions:
 jobs:
   setup-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -32,37 +34,24 @@ jobs:
           cd sample-test-case
           mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="${{ github.workspace }}/chrome-report" -Dcucumber.execution.parallel.enabled=true
 
-      # - name: Upload Test Report as Artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: chrome-report
-      #     path: ${{ github.workspace }}/chrome-report
-      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-east-1
-          role-to-assume: arn:aws:iam::853973692277:role/mohan-github-role
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: GithubActionsSession
-
-      # - name: Download Artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: chrome-report
 
       - name: Upload Test Results to AWS S3
         run: |
-          aws s3 sync ${GITHUB_WORKSPACE}/chrome-report/ s3://testing-md-bucket-results/reports/${{ github.run_number }}/chrome
+          aws s3 sync ${GITHUB_WORKSPACE}/chrome-report/ s3://${{ env.AWS_BUCKET_NAME }}/reports/${{ github.run_number }}/chrome
 
       - name: Invalidate CloudFront Cache
         run: |
-          aws cloudfront create-invalidation --distribution-id EXKKOLOGFI623 --paths "/*"
+          aws cloudfront create-invalidation --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
 
-      - name: Publish Test Reports
+      - name: View Test Reports
         run: |
-          echo "SERENITY REPORTS"
-          echo "****************"
-          echo "Full Report (Chrome) - https://testing-api.mohandurai.info/reports/${{ github.run_number }}/chrome/index.html"
-          echo "Single Page Summary (Chrome) - https://testing-api.mohandurai.info/reports/${{ github.run_number }}/chrome/serenity-summary.html"
-          echo "Full Report As React SPA (Chrome) - https://testing-api.mohandurai.info/reports/${{ github.run_number }}/chrome/navigator/index.html"
-          echo "****************"
+          echo "---SERENITY REPORTS---"
+          echo "Full Report (Chrome) - https://testing-dashboard.mohandurai.info/reports/${{ github.run_number }}/chrome/index.html"
+          echo "Single Page Summary (Chrome) - https://testing-dashboard.mohandurai.info/reports/${{ github.run_number }}/chrome/serenity-summary.html"
+          echo "Full Report As React SPA (Chrome) - https://testing-dashboard.mohandurai.info/reports/${{ github.run_number }}/chrome/navigator/index.html"
