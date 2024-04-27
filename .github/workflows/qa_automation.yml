@@ -30,13 +30,13 @@ jobs:
       - name: Run Automation Tests - Chrome
         run: |
           cd sample-test-case
-          mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="chrome-report" -Dcucumber.execution.parallel.enabled=true
-      
+          mvn clean verify -Dcucumber.filter.tags="@facebook and not @manual" -Dmaven.test.failure.ignore=true -Dwebdriver.remote.url=https://testing-api.mohandurai.info -Dwebdriver.remote.driver=chrome -Dserenity.outputDirectory="${{ github.workspace }}/chrome-report" -Dcucumber.execution.parallel.enabled=true
+
       - name: Upload Test Report as Artifact
         uses: actions/upload-artifact@v3
         with:
           name: chrome-report
-          path: chrome-report/
+          path: ${{ github.workspace }}/chrome-report
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
