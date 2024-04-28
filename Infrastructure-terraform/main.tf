@@ -62,7 +62,7 @@ module "security_groups_ecs" {
           from_port       = 4444
           to_port         = 4444
           protocol        = "tcp"
-          cidr_blocks     = ["0.0.0.0/0"]
+          cidr_blocks     = ["${var.vpc_cidr_block}"]
           security_groups = []
 
         },
@@ -79,7 +79,7 @@ module "security_groups_ecs" {
           from_port       = 4442
           to_port         = 4442
           protocol        = "tcp"
-          cidr_blocks     = ["0.0.0.0/0"]
+          cidr_blocks     = ["${var.vpc_cidr_block}"]
           security_groups = []
 
         },
@@ -88,7 +88,7 @@ module "security_groups_ecs" {
           from_port       = 4443
           to_port         = 4443
           protocol        = "tcp"
-          cidr_blocks     = ["0.0.0.0/0"]
+          cidr_blocks     = ["${var.vpc_cidr_block}"]
           security_groups = []
 
         },
@@ -97,7 +97,7 @@ module "security_groups_ecs" {
           from_port       = 5555
           to_port         = 5555
           protocol        = "tcp"
-          cidr_blocks     = ["0.0.0.0/0"]
+          cidr_blocks     = ["${var.vpc_cidr_block}"]
           security_groups = []
 
         }
@@ -115,6 +115,7 @@ module "reports_bucket" {
   bucket_name      = "results"
   versioning       = false
   enable_cors_rule = false
+
   policy = {
     "Version" : "2012-10-17",
     "Id" : "PolicyForCloudfront",
@@ -208,7 +209,7 @@ module "role" {
       },
     ]
   })
-  enable_bitbucket_role_oidc = false
+
   policy_statements = [
     {
       sid     = "AllowECSTask"
@@ -226,12 +227,19 @@ module "role" {
 
 }
 
+# You can create here or if already created the identity provider you can ude data block and pass the arn to role
+resource "aws_iam_openid_connect_provider" "github_oidc" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["a031c46782e6e6c662c2c87c76da9aa62ccabd8e"]
+}
+
 module "oidc_role" {
   source               = "./modules/iam_roles"
   resource_name_prefix = var.resource_name_prefix
-  policy_name          = "bitbucket-oidc"
-  role_name            = "bitbucket-oidc"
-  policy_description   = "Bitbucket OIDC Policy"
+  policy_name          = "github-oidc"
+  role_name            = "github-oidc"
+  policy_description   = "Github OIDC Policy"
 
   iam_policy_json = jsonencode({
     Version = "2012-10-17"
@@ -254,9 +262,6 @@ module "oidc_role" {
     ]
   })
 
-  enable_bitbucket_role_oidc = true
-  workspace_name             = var.workspace_name
-  workspace_uuid             = var.workspace_uuid
   policy_statements = [
     {
       sid     = "OidcAllow"
@@ -265,14 +270,19 @@ module "oidc_role" {
       principals = [
         {
           type        = "Federated"
-          identifiers = ["arn:aws:iam::${var.aws_account_id}:oidc-provider/api.bitbucket.org/2.0/workspaces/${var.workspace_name}/pipelines-config/identity/oidc"]
+          identifiers = [aws_iam_openid_connect_provider.github_oidc.arn]
         }
       ]
       condition = [
         {
-          test     = "ForAllValues:StringLike"
-          variable = "api.bitbucket.org/2.0/workspaces/${var.workspace_name}/pipelines-config/identity/oidc:sub"
-          values   = var.repo_uuids
+          test     = "StringLike"
+          variable = "token.actions.githubusercontent.com:aud"
+          values   = ["sts.amazonaws.com"]
+        },
+        {
+          test     = "StringLike"
+          variable = "token.actions.githubusercontent.com:sub"
+          values   = ["repo:${var.github_org_name}/${var.github_repo_name}:ref:refs/heads/${var.github_branch_name}"]
         }
       ]
     }

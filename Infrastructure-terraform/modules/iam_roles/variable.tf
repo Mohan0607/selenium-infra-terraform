@@ -39,27 +39,3 @@ variable "policy_statements" {
     }))
   }))
 }
-
-# OIDC 
-variable "enable_bitbucket_role_oidc" {
-  description = "Flag to enable the Bitbucket role OIDC."
-  type        = bool
-}
-
-variable "workspace_name" {
-  description = "The Bitbucket workspace name."
-  type        = string
-  default     = ""
-}
-
-variable "workspace_uuid" {
-  description = "The UUID of the Bitbucket workspace."
-  type        = string
-  default     = ""
-}
-
-variable "oidc_thumbprint" {
-  description = "The thumbprint of the OIDC."
-  type        = string
-  default     = "a031c46782e6e6c662c2c87c76da9aa62ccabd8e"
-}

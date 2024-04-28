@@ -39,10 +39,3 @@ resource "aws_iam_role" "main" {
   assume_role_policy  = data.aws_iam_policy_document.main.json
   managed_policy_arns = [aws_iam_policy.main.arn]
 }
-
-resource "aws_iam_openid_connect_provider" "bitbucket" {
-  count           = var.enable_bitbucket_role_oidc ? 1 : 0
-  url             = "https://api.bitbucket.org/2.0/workspaces/${var.workspace_name}/pipelines-config/identity/oidc" # Identity Provider URL as displayed in the Bitbucket OpenID Connect Provider page in your repository
-  client_id_list  = ["ari:cloud:bitbucket::workspace/${var.workspace_uuid}"]                                        # Identity Provider Audience as displayed in the Bitbucket OpenID Connect Provider page in your repository
-  thumbprint_list = [var.oidc_thumbprint]                                                                           # Thumbprint of OIDC host
-}

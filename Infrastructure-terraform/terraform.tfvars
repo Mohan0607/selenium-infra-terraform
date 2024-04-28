@@ -39,6 +39,6 @@ selenium_chrome_container_memory      = 2048
 selenium_chrome_service_desired_count = 1
 
 # ROLE OIDC
-repo_uuids     = ["{edc62e9b-a613-461c-8df4-8b541f894423}:*"]
-workspace_name = "mohan0607"
-workspace_uuid = "619b97f4-85f4-4c1a-9859-392e68581c19"
+github_org_name    = "Mohan0607"
+github_repo_name   = "selenium-infra-terraform"
+github_branch_name = "main"

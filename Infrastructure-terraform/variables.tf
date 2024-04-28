@@ -130,19 +130,16 @@ variable "selenium_hub_container_port" {
 }
 # OIDC workspace
 
-variable "workspace_name" {
-  description = "The Bitbucket workspace name."
+variable "github_org_name" {
+  description = "Name of ORG name"
   type        = string
-  default     = ""
+}
+variable "github_repo_name" {
+  description = "Name of repository."
+  type        = string
 }
 
-variable "workspace_uuid" {
-  description = "The UUID of the Bitbucket workspace."
+variable "github_branch_name" {
+  description = "Name of the Branch"
   type        = string
-  default     = ""
-}
-variable "repo_uuids" {
-  description = "List of repository UUIDs."
-  type        = list(string)
-  default     = []
 }
