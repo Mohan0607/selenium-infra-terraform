@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_BUCKET_NAME: testing-md-bucket-results
+  AWS_BUCKET_NAME: testing-md-results-bucket
   AWS_ROLE_ARN: arn:aws:iam::853973692277:role/testing-md-github-oidc-role
   AWS_REGION: us-east-1
   CLOUDFRONT_DISTRIBUTION_ID: EXKKOLOGFI623
