@@ -109,7 +109,7 @@ module "security_groups_ecs" {
 
 module "reports_bucket" {
   source               = "./modules/s3"
-  resource_name_prefix = join("-", [var.resource_name_prefix, "bucket"])
+  resource_name_prefix = var.resource_name_prefix
   aws_account_id       = var.aws_account_id
 
   bucket_name      = "results"

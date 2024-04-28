@@ -1,9 +1,6 @@
 name: Generating The Test Report
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 env:

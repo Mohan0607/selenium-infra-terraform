@@ -1,5 +1,5 @@
 locals {
-  bucket_name = join("-", [var.resource_name_prefix, var.bucket_name])
+  bucket_name = join("-", [var.resource_name_prefix, var.bucket_name, "bucket"])
   cors_rules  = try(jsondecode(var.cors_rule), var.cors_rule)
 }
 
